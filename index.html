@@ -1,76 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="index.css">
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <title>Homepage</title>
-</head>
-
-<body>
-    <!-- <h1 id="title" class="titleScreen">Magic words</h1> -->
-    <a href="./game/mode1">game 1</a>
-    <a href="#">game 2</a>
-    <br>
-    <br>
-    <a href="./auth/signin">signin</a>
-    <a href="./auth/signup">signup</a>
-    <a href="./auth/signout">signout</a>
-    <br>
-    <br>
-    <a href="./scoreboard/mode1">scoreboard 1</a>
-    <a href="./scoreboard/mode2">scoreboard 2</a>
-    <!-- Base -->
-    <div id="tvBackgorund" class="titleScreen">
-        <h1 id="title">Magic Words</h1>
-        <img src="./images/Tower.png" alt="" id="tower" class="titleScreen">
-        <div id="button-group">
-            <a href="./auth/signup"><button class="button">Sign Up</button></a>
-            <a href="./auth/signin"><button class="button">Login</button></a>
-            <a href="./scoreboard/mode1"><button class="button">Leaderboard</button></a>
-        </div>
-
-    </div>
-    <button id="powerButton" onclick="TurnTv()">
-        <span class="material-symbols-outlined">
-            power_settings_new
-        </span>
-    </button>
-
-    <img src="./images/Ground.png" alt="" id="Ground" class="titleScreen">
-    <img src="./images/DoodleJumpFrame.png" alt="" id="doodle">
-    <img src="./images/Window.png" alt="" id="window">
-    <!-- Base -->
-</body>
-<script>
-    let isTvOn = false;
-    const title = document.getElementsByClassName('titleScreen');
-    for (let index = 0; index < title.length; index++) {
-        title[index].style.visibility = 'hidden';
-    }
-    document.getElementById('powerButton').style.backgroundColor = "red";
-    document.getElementById('powerButton').style.borderColor = "darkred";
-    function TurnTv() {
-        const title = document.getElementsByClassName('titleScreen');
-        if (isTvOn) {
-            for (let index = 0; index < title.length; index++) {
-                title[index].style.visibility = 'hidden';
-            }
-            document.getElementById('powerButton').style.backgroundColor = "red";
-            document.getElementById('powerButton').style.borderColor = "darkred";
-            isTvOn = false;
-        } else {
-            for (let index = 0; index < title.length; index++) {
-                title[index].style.visibility = 'visible';
-            }
-            document.getElementById('powerButton').style.backgroundColor = "green";
-            document.getElementById('powerButton').style.borderColor = "darkgreen";
-            isTvOn = true;
-        }
-    }
-</script>
-
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      interactive-widget=resizes-content: when the on-screen keyboard opens,
+      Chrome/Android shrinks the layout instead of covering the game.
+      viewport-fit=cover + safe-area insets for phones with notches.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#0b1020" />
+    <meta
+      name="description"
+      content="Magic Words: um jogo de digitação onde você ajuda a bruxa Willow a chegar no espaço."
+    />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>Magic Words</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

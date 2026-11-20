@@ -1,0 +1,1231 @@
+/* ------------------------------------------------------------------ tokens */
+:root {
+  --wall: #0b1020;
+  --floor: #57283a;
+  --floor-light: #7a3a3e;
+  --bezel: #4a3442;
+  --bezel-dark: #2c1d2a;
+  --bezel-top: #3d2a52;
+  --sky: #87cefa;
+  --ink: #111111;
+  --paper: #ffffff;
+  --muted: #5b5b66;
+  --go: #2e9e46;
+  --danger: #d32f2f;
+  --accent: #ffd34d;
+  --wrong: #c62828;
+
+  --font-title: 'Fugaz One', 'Trebuchet MS', sans-serif;
+  --font-text: 'Blinker', 'Trebuchet MS', sans-serif;
+
+  --radius: 20px;
+  --outline: 3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 3px 0 #000, 3px 0 0 #000,
+    -3px 0 0 #000, 0 -3px 0 #000;
+
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--wall);
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--wall);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 18px;
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  max-width: 100%;
+}
+
+a {
+  color: #1d3d8f;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* While playing: no page scroll, no rubber-banding, no double-tap zoom. */
+html.is-playing,
+html.is-playing body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  height: 100%;
+}
+
+html.is-playing body {
+  touch-action: manipulation;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ----------------------------------------------------------------- buttons */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  min-width: min(220px, 100%);
+  padding: 4px 18px;
+  border: 5px solid #000;
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-title);
+  font-size: clamp(20px, 4.5vw, 28px);
+  line-height: 1.1;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 8px 0 #999;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    transform 0.05s;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.button:hover {
+  background: #000;
+  color: #fff;
+}
+
+.button:active {
+  transform: translateY(4px);
+  box-shadow: 0 3px 0 #666;
+}
+
+.button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.button-small {
+  min-width: 0;
+  min-height: 44px;
+  font-size: 20px;
+  box-shadow: 0 5px 0 #999;
+}
+
+.button-go {
+  background: #6fdc7f;
+}
+
+.button-danger {
+  background: #ff6b6b;
+}
+
+.round-button,
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 3px solid #000;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.round-button:hover,
+.icon-button:hover,
+.round-button.is-inverted {
+  background: #000;
+  color: #fff;
+}
+
+.round-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.power-button {
+  background: #2e9e46;
+  border-color: #155d24;
+  color: #fff;
+}
+
+.power-button.is-off {
+  background: #d32f2f;
+  border-color: #7f1515;
+}
+
+.outlined {
+  color: #fff;
+  text-shadow: var(--outline);
+}
+
+/* -------------------------------------------------------------------- room */
+.room {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 48px);
+  padding: 16px;
+  background: linear-gradient(to bottom, var(--wall) 0 74%, var(--floor) 74% 100%);
+  overflow: hidden;
+}
+
+.room-decor {
+  display: none;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/*
+  Wide screens: the Doodle Jump picture and the window hang on the wall at a
+  fixed place relative to the viewport (not to the content in the middle), so
+  they don't move between the home, game and leaderboard screens. The content
+  in the middle is kept narrower than the space between them.
+*/
+@media (min-width: 1150px) and (min-height: 620px) {
+  :root {
+    --decor-w: clamp(170px, 14vw, 270px);
+    --decor-inset: clamp(24px, 3vw, 72px);
+    --decor-top: min(46vh, 420px);
+    --decor-space: calc(var(--decor-w) + var(--decor-inset) + 24px);
+  }
+
+  .room {
+    background: linear-gradient(to bottom, var(--wall) 0 74vh, var(--floor) 74vh 100%);
+  }
+
+  .room-decor {
+    display: block;
+    position: absolute;
+    top: var(--decor-top);
+    width: var(--decor-w);
+    height: auto;
+    transform: translateY(-50%);
+  }
+
+  .room-decor-left {
+    left: var(--decor-inset);
+    border: 8px solid #3a1d16;
+  }
+
+  .room-decor-right {
+    /*
+      Measured from 100vw (which includes a classic desktop scrollbar) instead
+      of "right", so the window doesn't shift between the scrolling home page
+      and the screens without a scrollbar.
+    */
+    left: calc(100vw - var(--decor-inset) - var(--decor-w));
+  }
+
+  .tv,
+  .panel,
+  .game-shell {
+    max-width: calc(100vw - 2 * var(--decor-space));
+  }
+}
+
+/* ---------------------------------------------------------------------- tv */
+.tv {
+  position: relative;
+  width: min(100%, 620px);
+  flex: none;
+}
+
+.tv-antenna {
+  width: 62%;
+  height: 22px;
+  margin: 0 auto;
+  background: var(--bezel-top);
+  border-radius: 14px 14px 0 0;
+  box-shadow: inset 0 6px 0 #4c3466;
+}
+
+.tv-body {
+  background: var(--bezel);
+  border-radius: 22px;
+  padding: clamp(10px, 4vw, 40px) clamp(10px, 4vw, 40px) 10px;
+  box-shadow:
+    inset 0 -10px 0 var(--bezel-dark),
+    0 14px 0 rgba(0, 0, 0, 0.35);
+}
+
+.tv-screen {
+  position: relative;
+  aspect-ratio: 515 / 492;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #000;
+  box-shadow: 0 0 0 4px #000;
+}
+
+.tv-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 0 6px;
+}
+
+/* ------------------------------------------------------------ title screen */
+.home-room {
+  min-height: min(100svh, 900px);
+}
+
+/* Portrait phones: a taller TV screen so the menu fits comfortably. */
+@media (max-width: 560px) {
+  .home-room {
+    align-items: flex-start;
+    padding-top: max(24px, env(safe-area-inset-top));
+    min-height: 0;
+  }
+
+  .home-room .tv-screen {
+    aspect-ratio: 3 / 4;
+  }
+
+  .mode-picker {
+    flex-direction: column;
+    width: min(100%, 280px);
+  }
+
+  .button-mode {
+    width: 100%;
+  }
+}
+
+.title-screen {
+  position: absolute;
+  inset: 0;
+  background: var(--sky);
+}
+
+.title-tower {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 50%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  transform: translateX(-50%);
+  image-rendering: pixelated;
+}
+
+.title-ground {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  image-rendering: pixelated;
+}
+
+.title-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 5%, 44px);
+  height: 100%;
+  /* Keep the menu above the grass. */
+  padding: 12px 12px clamp(40px, 12%, 80px);
+}
+
+.game-title {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(40px, 12vw, 76px);
+  line-height: 1.05;
+  text-align: center;
+  color: #fff;
+  text-shadow: var(--outline);
+}
+
+.mode-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 6px;
+  padding: 6px;
+  background: #adadad;
+  border: 5px solid #fff;
+  border-radius: var(--radius);
+}
+
+.button-mode {
+  min-width: clamp(110px, 30vw, 150px);
+  box-shadow: none;
+}
+
+.mode-label {
+  font-family: var(--font-title);
+  font-size: clamp(18px, 4vw, 28px);
+  color: #fff;
+  text-shadow: var(--outline);
+}
+
+/* ------------------------------------------------------------------ manual */
+.divider {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 15px;
+  border: 0;
+  background: rgba(10, 0, 20, 0.9);
+  color: #fff;
+  font-family: var(--font-title);
+  font-size: clamp(18px, 4vw, 25px);
+  cursor: pointer;
+}
+
+.manual {
+  background: lightskyblue;
+}
+
+.manual section {
+  padding: clamp(24px, 5vw, 56px) 16px;
+}
+
+.manual-hero {
+  display: grid;
+  gap: 24px;
+  align-items: center;
+  justify-items: center;
+  background: #000 url('../assets/ui/Space.png') center bottom / cover;
+}
+
+@media (min-width: 1000px) {
+  .manual-hero {
+    grid-template-columns: 5fr 7fr;
+    max-width: none;
+    padding-inline: max(16px, calc((100% - 1300px) / 2));
+  }
+}
+
+.manual-hero-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  max-width: 640px;
+}
+
+.manual-hero-image {
+  width: min(100%, 560px);
+  image-rendering: pixelated;
+}
+
+.big-title {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(36px, 7vw, 70px);
+  line-height: 1.15;
+  color: #d9d9d9;
+  text-shadow: var(--outline);
+}
+
+.big-subtitle {
+  color: #e8e8e8;
+  font-weight: 700;
+  font-size: clamp(20px, 3.4vw, 28px);
+}
+
+.manual-howto {
+  background: linear-gradient(#000, lightskyblue);
+}
+
+.md-title {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(36px, 7vw, 60px);
+  text-align: center;
+  color: #e8e8e8;
+  text-shadow: var(--outline);
+}
+
+.md-subtitle {
+  max-width: 1100px;
+  margin: 8px auto 24px;
+  text-align: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: clamp(19px, 2.6vw, 25px);
+}
+
+.bubble-grid {
+  display: grid;
+  gap: 16px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .bubble-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px;
+  border: 5px solid gray;
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.bubble h3 {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(24px, 3vw, 32px);
+  text-align: center;
+}
+
+.bubble-wide {
+  max-width: 1100px;
+  margin: 16px auto 0;
+}
+
+.bubble-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.bubble-row p {
+  flex: 1 1 260px;
+}
+
+.bubble-art {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+}
+
+.bubble-art img {
+  image-rendering: pixelated;
+}
+
+.witch-gif {
+  width: calc(48px * 2.2);
+  height: calc(62px * 2.2);
+  object-fit: cover;
+  object-position: top center;
+}
+
+.cloud-img {
+  width: calc(78px * 1.3);
+  height: calc(44px * 1.3);
+  align-self: center;
+}
+
+.witch-icon {
+  height: 100px;
+  width: auto;
+}
+
+.skull-img {
+  height: 60px;
+  width: auto;
+}
+
+.witch-big {
+  width: 130px;
+  height: 130px;
+}
+
+.mirrored {
+  transform: scaleX(-1);
+}
+
+.mystery {
+  font-family: var(--font-title);
+  font-size: 60px;
+  color: yellow;
+  text-shadow: var(--outline);
+}
+
+.color-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+
+@media (min-width: 520px) {
+  .color-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.color-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-chip {
+  /* Looks like the word labels in the game: white pill, colored outlined text. */
+  flex: none;
+  min-width: 104px;
+  padding: 2px 10px;
+  border: 3px solid #000;
+  border-radius: 30px;
+  background: #fff;
+  font-family: var(--font-title);
+  text-align: center;
+  text-shadow:
+    2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000,
+    0 2px 0 #000,
+    2px 0 0 #000,
+    -2px 0 0 #000,
+    0 -2px 0 #000;
+}
+
+.manual-leaderboard {
+  background: lightskyblue;
+}
+
+.manual-credits {
+  background: lightskyblue;
+}
+
+.credits-grid {
+  display: grid;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 16px auto 0;
+}
+
+@media (min-width: 900px) {
+  .credits-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.credits-heading {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 30px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.programmers,
+.art-credits {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.programmer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius);
+}
+
+.programmer img {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  border: 5px solid #303030;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.programmer div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.programmer strong {
+  font-size: 22px;
+}
+
+.art-credits {
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius);
+  font-size: 19px;
+}
+
+.manual-ground {
+  height: 150px;
+  background: url('../assets/sprites/Ground.png') repeat-x lightskyblue;
+  background-size: auto 150px;
+  image-rendering: pixelated;
+}
+
+/* ------------------------------------------------------------- leaderboard */
+.page-room {
+  min-height: 100dvh;
+  align-items: flex-start;
+  padding-top: clamp(16px, 6vh, 64px);
+}
+
+.panel {
+  position: relative;
+  width: min(100%, 580px);
+  flex: none;
+  padding: 16px;
+  border: 5px solid #000;
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.4);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(28px, 7vw, 40px);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.tab {
+  flex: 1;
+  min-height: 44px;
+  border: 4px solid #000;
+  border-radius: 999px;
+  background: #e9e9ef;
+  font-family: var(--font-title);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.tab.is-active {
+  background: #000;
+  color: #fff;
+}
+
+.leaderboard-body {
+  min-height: 120px;
+}
+
+.leaderboard-list {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.leaderboard-list li {
+  display: grid;
+  grid-template-columns: 3ch 1fr auto;
+  grid-template-areas: 'rank name score' 'rank date score';
+  align-items: center;
+  column-gap: 12px;
+  padding: 6px 12px;
+  border: 3px solid #000;
+  border-radius: 14px;
+  background: #f4f4f8;
+}
+
+.leaderboard-list li:nth-child(1) {
+  background: #fff3b0;
+}
+
+.leaderboard-list li:nth-child(2) {
+  background: #eceff4;
+}
+
+.leaderboard-list li:nth-child(3) {
+  background: #f7dcc4;
+}
+
+.leaderboard-list li.is-highlighted {
+  outline: 4px solid var(--go);
+}
+
+.lb-rank {
+  grid-area: rank;
+  font-family: var(--font-title);
+  font-size: 22px;
+}
+
+.lb-name {
+  grid-area: name;
+  font-weight: 700;
+  font-size: 21px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.lb-date {
+  grid-area: date;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.lb-score {
+  grid-area: score;
+  font-family: var(--font-title);
+  font-size: 26px;
+}
+
+.leaderboard-empty {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 24px 8px;
+  text-align: center;
+  font-size: 20px;
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding-bottom: 8px;
+}
+
+.form-hint {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  text-align: center;
+}
+
+.form-error {
+  color: var(--wrong);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------------- game */
+.game-room {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--vv-top, 0px);
+  height: var(--vv-height, 100dvh);
+  padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) 6px
+    max(6px, env(safe-area-inset-left));
+}
+
+.game-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Larger screens: the game sits inside the TV, like the original. */
+@media (min-width: 700px) and (min-height: 560px) {
+  .game-room {
+    padding: 20px;
+  }
+
+  .game-shell {
+    flex: none;
+    width: min(100%, calc((var(--vv-height, 100dvh) - 190px) * 1.047 + 60px));
+    padding: 16px 24px 12px;
+    background: var(--bezel);
+    border-radius: 22px;
+    box-shadow:
+      inset 0 -10px 0 var(--bezel-dark),
+      0 14px 0 rgba(0, 0, 0, 0.35);
+  }
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.hud-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 14px;
+  border: 3px solid #000;
+  border-radius: 999px;
+  background: var(--paper);
+  font-family: var(--font-title);
+}
+
+.hud-label {
+  font-size: 16px;
+}
+
+.hud-value {
+  min-width: 2ch;
+  font-size: clamp(24px, 6vw, 30px);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-powers {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.power {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 48px;
+  height: 40px;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 3px dashed #000;
+  border-radius: 14px;
+  background: var(--paper);
+  font-family: var(--font-title);
+  font-size: 24px;
+}
+
+.power img {
+  width: 28px;
+  height: 28px;
+}
+
+.power-life {
+  color: #148a2a;
+}
+
+.power-double {
+  color: #b38600;
+}
+
+.power-timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 4px;
+  background: currentColor;
+  transform-origin: left;
+}
+
+.power-guard {
+  color: #e07b00;
+}
+
+.power-slow .power-timer {
+  background: #0097a7;
+}
+
+.hud-buttons {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #000;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.game-canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  padding: 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.overlay-dim {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.overlay-panel {
+  /* margin: auto centers it but still lets a tall panel scroll from its top. */
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 470px);
+  padding: 14px 18px 20px;
+  border: 4px solid #000;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.96);
+  text-align: center;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.35);
+}
+
+.overlay-panel-plain {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.overlay-title {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(32px, 8vw, 48px);
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: var(--outline);
+}
+
+.overlay-title-huge {
+  font-size: clamp(42px, 12vw, 76px);
+}
+
+.overlay-text {
+  font-size: clamp(17px, 2.5vw, 20px);
+  font-weight: 700;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 14px;
+  margin-top: 6px;
+}
+
+.overlay-actions .button {
+  min-width: 150px;
+}
+
+.final-score {
+  font-family: var(--font-title);
+  font-size: clamp(22px, 5vw, 30px);
+}
+
+.final-score strong {
+  font-weight: 400;
+  font-size: 1.3em;
+}
+
+.save-score {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+}
+
+.save-score label {
+  font-weight: 700;
+}
+
+.save-score-row {
+  display: flex;
+  gap: 8px;
+}
+
+.text-input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 14px;
+  border: 3px solid #000;
+  border-radius: 14px;
+  background: #fff;
+  /* >= 16px so iOS doesn't zoom in when focusing. */
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.save-score-done {
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.typing-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.countdown {
+  flex: none;
+  padding: 4px 10px;
+  border: 3px solid #000;
+  border-radius: 12px;
+  background: var(--accent);
+  font-family: var(--font-title);
+  font-size: 18px;
+}
+
+.countdown.is-urgent {
+  background: #ff6b6b;
+  color: #fff;
+  animation: pulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  to {
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown.is-urgent {
+    animation: none;
+  }
+}
+
+.typed-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 18px;
+  border: 4px solid #000;
+  border-radius: 999px;
+  background: var(--paper);
+  cursor: text;
+}
+
+.typing-bar.is-idle .typed-box {
+  opacity: 0.6;
+}
+
+.typed-box:focus-within {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.typed-box.is-wrong {
+  border-color: var(--wrong);
+  background: #ffe3e3;
+}
+
+.typed-text {
+  /* Shown in capitals for readability; matching ignores case. */
+  text-transform: uppercase;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 700;
+  font-size: clamp(24px, 6vw, 32px);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.typed-box.is-wrong .typed-text {
+  color: var(--wrong);
+}
+
+.typed-placeholder {
+  color: #8a8a96;
+  font-size: 0.7em;
+  letter-spacing: 0;
+}
+
+/*
+  The real <input>: invisible but focusable and on top of the typed box.
+  font-size 16px stops iOS from zooming the page when it gets focus.
+*/
+.game-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  opacity: 0;
+  cursor: text;
+}
+
+/* Very short visible areas (landscape phone with keyboard open): compact HUD. */
+@media (max-height: 420px) {
+  .hud {
+    min-height: 40px;
+  }
+
+  .round-button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .typing-bar {
+    min-height: 46px;
+  }
+
+  .typed-box {
+    min-height: 44px;
+  }
+}
