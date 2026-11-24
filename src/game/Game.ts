@@ -7,15 +7,18 @@ import {
   DISCARDED_PLATFORM_SPEED,
   DOUBLE_POINTS_TICKS,
   IDLE_TICKS_BEFORE_FALL,
-  INITIAL_PLAT_COOLDOWN,
   INITIAL_PLAT_SPEED,
+  INITIAL_ROW_GAP,
   MAX_PLAT_SPEED,
+  MIN_ROW_GAP,
   PLAT_SPEED_STEP,
   PLATFORM_CLOUD_H,
   PLATFORM_CLOUD_W,
   POINTS_PER_WORD,
   SLOW_TIME_TICKS,
-  STORM_SPEED,
+  STORM_MAX_SPEED,
+  STORM_MIN_SPEED,
+  STORM_SPEED_MULT,
   FOG_HIDDEN_FRACTION,
   SPACE_SCORE,
   TICKS_PER_SECOND,
@@ -159,7 +162,8 @@ export class Game {
 
   // Platform spawning
   private platSpeed = INITIAL_PLAT_SPEED;
-  private platCooldown = INITIAL_PLAT_COOLDOWN;
+  /** Vertical distance the latest spawned row has fallen (world units). */
+  private distSinceLastSpawn = Infinity;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -244,6 +248,7 @@ export class Game {
     this.h = newH;
     for (const p of this.platforms) p.y *= ratio;
     for (const c of this.bgClouds) c.y *= ratio;
+    if (Number.isFinite(this.distSinceLastSpawn)) this.distSinceLastSpawn *= ratio;
     if (this.standing && this.current) this.witchFootY = this.current.y + FOOT_OFFSET;
     else this.witchFootY = this.groundFootY + this.gravity / 3;
     this.spaceY = [0, -newH];
@@ -292,7 +297,7 @@ export class Game {
     this.guard = false;
     this.doubleTicks = 0;
     this.platSpeed = INITIAL_PLAT_SPEED;
-    this.platCooldown = INITIAL_PLAT_COOLDOWN;
+    this.distSinceLastSpawn = Infinity;
   }
 
   private get canTypeAnyRow(): boolean {
@@ -300,7 +305,11 @@ export class Game {
   }
 
   private canType(platform: WordPlatform): boolean {
-    return !platform.typed && this.mode.canType(platform, this.nextRow, this.canTypeAnyRow);
+    return (
+      !platform.typed &&
+      platform.speed < DISCARDED_PLATFORM_SPEED &&
+      this.mode.canType(platform, this.nextRow, this.canTypeAnyRow)
+    );
   }
 
   private tryCompleteWord(): boolean {
@@ -313,6 +322,13 @@ export class Game {
     target.typed = true;
     // The platform left behind drops away quickly.
     if (this.current) this.current.speed = DISCARDED_PLATFORM_SPEED;
+    // Stairs: immediately discard the other clouds of this row so they can't
+    // clutter or be matched while falling away.
+    if (this.mode.discardRowSiblings) {
+      for (const p of this.platforms) {
+        if (p.row === target.row && !p.typed) p.speed = DISCARDED_PLATFORM_SPEED;
+      }
+    }
     this.current = target;
     this.standing = true;
     this.puffFrame = 0;
@@ -339,8 +355,8 @@ export class Game {
         this.guard = true;
         break;
       case 'Storm':
-        // The storm cloud plunges: the witch has to jump again quickly.
-        target.speed = STORM_SPEED;
+        // Accelerate the fall moderately: creates urgency while keeping time to type.
+        target.speed = Math.min(STORM_MAX_SPEED, Math.max(STORM_MIN_SPEED, target.speed * STORM_SPEED_MULT));
         break;
       case 'Death':
         if (this.extraLife) {
@@ -354,6 +370,22 @@ export class Game {
         break;
     }
     this.nextRow = target.row + 1;
+
+    if (type === 'Storm') {
+      // Guarantee there is a reachable cloud to type right away so a Storm
+      // cloud never leaves the player falling with nothing on screen.
+      const hasReachableCloud = this.platforms.some(
+        (p) =>
+          !p.typed &&
+          p.speed < DISCARDED_PLATFORM_SPEED &&
+          p.y < this.h - 110 &&
+          this.mode.canType(p, this.nextRow, false),
+      );
+      if (!hasReachableCloud) {
+        this.spawnRow();
+        this.distSinceLastSpawn = 0;
+      }
+    }
     return true;
   }
 
@@ -382,7 +414,6 @@ export class Game {
       this.updatePlatforms();
       this.updatePowerUps();
       this.updateWitch();
-      this.platCooldown++;
       this.tick++;
       this.emitHud();
     } else if (this.status === 'over') {
@@ -422,13 +453,20 @@ export class Game {
     this.bgClouds = this.bgClouds.filter((c) => c.y < this.h + 60 && c.x < W + 300 && c.x > -300);
   }
 
+  /** Target vertical separation between consecutive rows (shrinks smoothly with speed). */
+  private currentRowGap(): number {
+    const span = MAX_PLAT_SPEED - INITIAL_PLAT_SPEED;
+    const t = span > 0 ? Math.min(1, Math.max(0, (this.platSpeed - INITIAL_PLAT_SPEED) / span)) : 1;
+    return INITIAL_ROW_GAP + (MIN_ROW_GAP - INITIAL_ROW_GAP) * t;
+  }
+
   private updatePlatforms(): void {
-    if (this.platCooldown >= 1101 - Math.floor(this.platSpeed) * 100) {
+    const speedMult = this.slowTimeTicks > 0 ? 0.5 : 1;
+    if (this.distSinceLastSpawn >= this.currentRowGap()) {
       this.spawnRow();
-      this.platCooldown = 0;
+      this.distSinceLastSpawn = 0;
     }
 
-    const speedMult = this.slowTimeTicks > 0 ? 0.5 : 1;
     const current = this.current;
     for (const p of this.platforms) {
       p.y += p.speed * speedMult;
@@ -437,12 +475,14 @@ export class Game {
         p.speed = DISCARDED_PLATFORM_SPEED;
       }
     }
+    this.distSinceLastSpawn += (this.platSpeed / 10) * speedMult;
     this.platforms = this.platforms.filter((p) => p.y <= this.h + REMOVE_BELOW_BOTTOM);
   }
 
   private spawnRow(): void {
     const count = this.mode.rowSize(this.rng);
     const types = rollRowTypes(count, this.rng);
+    const rowSpeed = this.platSpeed / 10;
     // Same as the original: start at column 0 or 1, then cycle through the three.
     let column = randomInt(0, 2, this.rng);
     for (const type of types) {
@@ -458,14 +498,14 @@ export class Game {
         type,
         x: COLUMN_CENTERS[column] * W,
         y: 0,
-        speed: this.platSpeed / 10,
+        speed: rowSpeed,
         row: this.rowCounter,
         typed: false,
       });
-      // Each new cloud makes the game a bit faster.
-      if (this.platSpeed <= MAX_PLAT_SPEED) this.platSpeed += PLAT_SPEED_STEP;
       column = (column + 1) % COLUMN_CENTERS.length;
     }
+    // Each new cloud makes the game a bit faster, keeping all clouds in a row level.
+    this.platSpeed = Math.min(MAX_PLAT_SPEED, this.platSpeed + PLAT_SPEED_STEP * count);
     this.rowCounter++;
   }
 
@@ -530,10 +570,13 @@ export class Game {
 
     this.drawBackground();
     if (this.status !== 'over') {
-      this.drawPlatforms();
+      this.drawPlatformClouds();
       this.drawWitch();
     }
     this.drawSupport();
+    if (this.status !== 'over') {
+      this.drawPlatformLabels();
+    }
   };
 
   private drawBackground(): void {
@@ -590,14 +633,8 @@ export class Game {
     if (towerTop + capH > 0) ctx.drawImage(assets.tower, 0, 0, 128, capRows, x, towerTop, 256, capH);
   }
 
-  private drawPlatforms(): void {
+  private drawPlatformClouds(): void {
     const { ctx, assets } = this;
-    const size = this.wordFontSize();
-    const wordFont = font(size);
-    const padX = size * 0.55;
-    const boxH = size * 1.45;
-    const outline = Math.max(3, size * 0.22);
-
     for (const p of this.platforms) {
       ctx.drawImage(
         assets.cloudPlatform,
@@ -610,26 +647,57 @@ export class Game {
         PLATFORM_CLOUD_W,
         PLATFORM_CLOUD_H,
       );
-      if (p.typed) continue;
+    }
+  }
 
+  /**
+   * Draws word pills in a separate pass above all cloud sprites and the witch,
+   * ordered dimmed -> typeable -> matched so upper clouds never hide lower words.
+   */
+  private drawPlatformLabels(): void {
+    const { ctx } = this;
+    const baseSize = this.wordFontSize();
+    const maxBoxW = W / COLUMN_CENTERS.length - 8;
+
+    const visible = this.platforms.filter((p) => !p.typed && p.speed < DISCARDED_PLATFORM_SPEED);
+    const items = visible.map((p) => {
       const typeable = this.canType(p);
-      ctx.font = wordFont;
-      // Highlight the part of the word that matches what the player typed.
       const matched = typeable && this.typed !== '' && p.text.startsWith(this.typed);
+      const priority = matched ? 2 : typeable ? 1 : 0;
+      return { p, typeable, matched, priority };
+    });
+    items.sort((a, b) => a.priority - b.priority);
+
+    for (const { p, typeable, matched } of items) {
       // Fog clouds show "?" for some letters; typing the right letters reveals them.
       const shown = p.label ? (matched ? this.typed + p.label.slice(this.typed.length) : p.label) : p.text;
-      const textW = ctx.measureText(shown).width;
-      const boxW = textW + padX * 2;
+
+      let size = baseSize;
+      let wordFont = font(size);
+      ctx.font = wordFont;
+      let padX = size * 0.55;
+      let textW = ctx.measureText(shown).width;
+      let boxW = textW + padX * 2;
+      if (boxW > maxBoxW) {
+        size = Math.max(15, Math.floor(baseSize * (maxBoxW / boxW)));
+        wordFont = font(size);
+        ctx.font = wordFont;
+        padX = size * 0.5;
+        textW = ctx.measureText(shown).width;
+        boxW = textW + padX * 2;
+      }
+
+      const boxH = size * 1.45;
+      const outline = Math.max(3, size * 0.22);
       const boxX = Math.min(Math.max(p.x - boxW / 2, 3), W - 3 - boxW);
-      // The label normally sits on top of its cloud, but it is clamped inside
-      // the canvas so a word is always fully readable: a new row enters from
-      // the top edge, and an old one leaves through the bottom.
+      // The label normally sits on top of its cloud, clamped inside the canvas
+      // so a word is always fully readable at the top and bottom edges.
       const naturalY = p.y + 6 - boxH;
       const boxY = Math.min(Math.max(naturalY, LABEL_MARGIN), this.h - LABEL_MARGIN - boxH);
       const midY = boxY + boxH / 2 + size * 0.04;
       const textX = boxX + padX;
 
-      ctx.globalAlpha = typeable ? 1 : 0.55;
+      ctx.globalAlpha = typeable ? 1 : 0.45;
       drawPanel(ctx, boxX, boxY, boxW, boxH, {
         fill: '#ffffff',
         stroke: '#000000',

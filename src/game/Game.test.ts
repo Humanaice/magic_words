@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GameAssets } from './assets';
 import type { GameAudio } from './audio';
 import { Game, rollRowTypes } from './Game';
+import { MAX_PLAT_SPEED, MIN_ROW_GAP, SLOW_TIME_TICKS } from './config';
 import { randomMode, stairsMode, type GameModeRules } from './modes';
 import { PLATFORM_SPAWN_TABLE, isHazard, type HudState, type WordPlatform } from './types';
 import { fogWord } from './words';
@@ -43,7 +44,8 @@ interface GameInternals {
   update(): void;
   spawnRow(): void;
   updatePlatforms(): void;
-  platCooldown: number;
+  platSpeed: number;
+  slowTimeTicks: number;
   render(): void;
   h: number;
   platforms: WordPlatform[];
@@ -193,14 +195,38 @@ describe('cloud types', () => {
     expect(hud().guard).toBe(false);
   });
 
-  it('a Storm cloud plunges after landing on it', () => {
-    const { game, internals } = setup(randomMode);
+  it('a Storm cloud accelerates moderately and guarantees a typeable next cloud', () => {
+    const { game, internals } = setup(stairsMode);
     internals.update();
     const target = internals.platforms[0];
     target.type = 'Storm';
     const before = target.speed;
     game.setTyped(target.text);
+    // Noticeably faster than normal, yet still gives time to type the next word.
     expect(target.speed).toBeGreaterThan(before * 2);
+    expect(target.speed).toBeLessThan(2.0);
+    // Row 1 must spawn immediately so the player is never falling with nothing to type.
+    const nextRowClouds = internals.platforms.filter((p) => p.row === target.row + 1 && !p.typed);
+    expect(nextRowClouds).toHaveLength(3);
+  });
+
+  it('rows stay separated at max speed and during SlowTime so labels never overlap', () => {
+    const { game, internals } = setup(stairsMode);
+    game.setRandom(mulberry32(12));
+    internals.platSpeed = MAX_PLAT_SPEED;
+    internals.slowTimeTicks = SLOW_TIME_TICKS;
+
+    for (let tick = 0; tick < 600; tick++) {
+      internals.updatePlatforms();
+      const byRow = new Map<number, number>();
+      for (const p of internals.platforms) {
+        if (!p.typed) byRow.set(p.row, p.y);
+      }
+      const ys = [...byRow.values()].sort((a, b) => a - b);
+      for (let i = 1; i < ys.length; i++) {
+        expect(ys[i] - ys[i - 1]).toBeGreaterThanOrEqual(MIN_ROW_GAP - 1);
+      }
+    }
   });
 
   it('Fog hides letters but the real word is typed', () => {
@@ -260,7 +286,6 @@ describe('there is always a safe cloud to jump on', () => {
     let checked = 0;
     for (let tick = 0; tick < 60 * 60 * 10; tick++) {
       internals.updatePlatforms();
-      internals.platCooldown++;
       const visible = internals.platforms.filter((p) => !p.typed && p.y >= 0 && p.y <= internals.h);
       if (visible.length === 0) continue;
       checked++;

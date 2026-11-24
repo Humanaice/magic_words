@@ -17,7 +17,7 @@ const CLOUD_COLORS = [
   { name: 'Salmão', type: 'Shuffle', effect: 'Mistura as letras' },
   { name: 'Rosa', type: 'Reverse', effect: 'Inverte a palavra' },
   { name: 'Cinza', type: 'Fog', effect: 'Neblina: esconde algumas letras com "?"' },
-  { name: 'Anil', type: 'Storm', effect: 'Tempestade: a nuvem despenca, pule rápido!' },
+  { name: 'Anil', type: 'Storm', effect: 'Tempestade: a nuvem cai mais rápido, pule logo!' },
   { name: 'Vermelho', type: 'Death', effect: 'Mata a Willow!' },
 ] as const satisfies readonly { name: string; type: PlatformType; effect: string }[];
 
